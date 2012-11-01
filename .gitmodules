@@ -1,0 +1,3 @@
+[submodule "lib/squill"]
+	path = lib/squill
+	url = git@github.com:gameclosure/squill.git

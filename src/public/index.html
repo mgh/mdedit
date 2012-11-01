@@ -1,0 +1,142 @@
+<!doctype html>
+
+<style>
+
+	@import "codemirror/themes/lesser-dark.css";
+
+	html, body { margin: 0px; padding: 0px; width: 100%; height: 100%; }
+
+	#editor {
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		bottom: 0px;
+		width: 50%;
+		border-right: 1px solid #EEE;
+		z-index: 100;
+	}
+
+	#editor .CodeMirror {
+		width: 100%;
+		height: 100%;
+	}
+
+	#editor .CodeMirror-scroll {
+		height: 100%;
+		overflow: scroll; 
+	}
+
+	#preview {
+		background: #FFF;
+		position: absolute;
+		top: 0px;
+		right: 0px;
+		bottom: 0px;
+		width: 50%;
+		height: 100%;
+		border: none;
+	}
+
+	#status {
+		position: absolute;
+		bottom: 0px;
+		height: 20px;
+		color: #AAA;
+	}
+</style>
+
+<body>
+<div id="status"></div>
+</body>
+
+<script src="jsio/jsio.js"></script>
+<script>
+jsio.path.add(".");
+
+jsio("import CodeEditor");
+jsio("import codemirror.markdown");
+
+jsio("import util.ajax");
+jsio("from util.browser import $");
+
+var UPDATE_INTERVAL = 500;
+var _lastUpdate = 0;
+var writeLater = null;
+
+var editor = new CodeEditor({
+	parent: document.body,
+	id: 'editor',
+	mode: 'markdown',
+	lineNumbers: true,
+	matchBrackets: true,
+	lineWrapping: true,
+	theme: "lesser-dark",
+	onChange: function (diffObj) {
+		clearTimeout(writeLater);
+		var now = Date.now();
+		if (now > _lastUpdate + UPDATE_INTERVAL) {
+			_lastUpdate = now;
+			write();
+		} else {
+			writeLater = setTimeout(write, UPDATE_INTERVAL);
+		}
+	}
+});
+
+var preview1 = $({
+	tag: "iframe",
+	parent: document.body,
+	id: "preview"
+});
+
+var preview2 = $({
+	tag: "iframe",
+	parent: document.body,
+	id: "preview"
+});
+
+preview1.style.zIndex = 2;
+preview2.style.zIndex = 1;
+
+function read() {
+	util.ajax.get({url: "/read"}, function (err, res) {
+		if (!err) {
+			editor.setValue(res);
+			editor.refresh();
+		} else {
+			alert(JSON.stringify(err));
+		}
+	});
+}
+
+function write() {
+	$.setText('status', 'saving...');
+	util.ajax.post({url: "/write", data: editor.getValue()}, function (err, res) {
+		if (err) {
+			alert(JSON.stringify(err));
+			$.setText('status', 'error while saving');
+		} else {
+			$.setText('status', '');
+			var x = preview1.contentWindow.scrollX;
+			var y = preview1.contentWindow.scrollY;
+
+			var w = preview2.contentWindow;
+			var d = preview2.contentDocument;
+			d.open();
+			d.write(res);
+			d.close();
+
+			setTimeout(function () {
+				w.scrollTo(x, y);
+				preview2.style.zIndex = 2;
+				preview1.style.zIndex = 1;
+				var swap = preview1;
+				preview1 = preview2;
+				preview2 = swap;
+			});
+		}
+	});
+}
+
+read();
+</script>

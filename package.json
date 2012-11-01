@@ -1,0 +1,21 @@
+{
+  "author": "Martin Hunt",
+  "name": "mdedit",
+  "description": "web-based markdown editor",
+  "version": "0.0.1",
+  "homepage": "http://github.com/mgh/mdedit",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mgh/mdedit.git"
+  },
+  "dependencies": {
+    "express": "3.0.0rc3",
+    "optimist": "0.3.4",
+    "ff": "0.0.16",
+    "js.io": ""
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
