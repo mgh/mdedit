@@ -120,14 +120,22 @@ function write() {
 			var x = preview1.contentWindow.scrollX;
 			var y = preview1.contentWindow.scrollY;
 
+			var atBottom = y + preview1.offsetHeight > preview1.contentDocument.body.scrollHeight - 10;
+
 			var w = preview2.contentWindow;
 			var d = preview2.contentDocument;
+
 			d.open();
 			d.write(res);
 			d.close();
 
 			setTimeout(function () {
-				w.scrollTo(x, y);
+				if (atBottom) {
+					w.scrollTo(x, d.body.scrollHeight);
+				} else {
+					w.scrollTo(x, y);
+				}
+
 				preview2.style.zIndex = 2;
 				preview1.style.zIndex = 1;
 				var swap = preview1;
@@ -139,4 +147,9 @@ function write() {
 }
 
 read();
+
+window.onbeforeunload = function () {
+	return "Are you sure you want to navigate away?";
+}
+
 </script>
