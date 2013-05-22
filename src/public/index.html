@@ -52,12 +52,15 @@
 <script src="jsio/jsio.js"></script>
 <script>
 jsio.path.add(".");
+jsio("from base import *");
 
 jsio("import CodeEditor");
 jsio("import codemirror.markdown");
 
 jsio("import util.ajax");
 jsio("from util.browser import $");
+
+jsio("import .marked");
 
 var UPDATE_INTERVAL = 500;
 var _lastUpdate = 0;
@@ -83,6 +86,34 @@ var editor = new CodeEditor({
 	}
 });
 
+var Queue = Class(function () {
+	this.init = function () {
+		this._isRunning = false;
+		this._items = [];
+	}
+
+	this.add = function (item) {
+		if (!this._isRunning) {
+			this._isRunning = true;
+			item();
+		} else {
+			this._items.push(item);
+		}
+	}
+
+	this.getNext = function () {
+		return this._items.shift();
+	}
+
+	this.onFinish = function () {
+		if (this._items[0]) {
+			this._items.shift()();
+		} else {
+			this._isRunning = false;
+		}
+	}
+});
+
 var preview1 = $({
 	tag: "iframe",
 	parent: document.body,
@@ -95,10 +126,12 @@ var preview2 = $({
 	id: "preview"
 });
 
+
+
 preview1.style.zIndex = 2;
 preview2.style.zIndex = 1;
 
-function read() {
+function read () {
 	util.ajax.get({url: "/read"}, function (err, res) {
 		if (!err) {
 			editor.setValue(res);
@@ -109,41 +142,72 @@ function read() {
 	});
 }
 
-function write() {
-	$.setText('status', 'saving...');
-	util.ajax.post({url: "/write", data: editor.getValue()}, function (err, res) {
+function write () {
+	// $.setText('status', 'saving...');
+
+	var src = editor.getValue();
+	var output = marked.parse(editor.getValue());
+
+	send(src, output);
+
+	// $.setText('status', '');
+	var x = preview1.contentWindow.scrollX;
+	var y = preview1.contentWindow.scrollY;
+
+	var atBottom = y + preview1.offsetHeight > preview1.contentDocument.body.scrollHeight - 10;
+
+	var w = preview2.contentWindow;
+	var d = preview2.contentDocument;
+
+	d.open();
+	d.write(output);
+	d.close();
+
+	setTimeout(function () {
+		if (atBottom) {
+			w.scrollTo(x, d.body.scrollHeight);
+		} else {
+			w.scrollTo(x, y);
+		}
+
+		preview2.style.zIndex = 2;
+		preview1.style.zIndex = 1;
+		var swap = preview1;
+		preview1 = preview2;
+		preview2 = swap;
+	});
+}
+
+var _pending = null;
+var _sending = false;
+function send (src, compiled) {
+	_pending = {
+			src: src,
+			compiled: compiled
+		};
+
+	if (!_sending) {
+		_doSend();
+	}
+}
+
+function _doSend() {
+	_sending = true;
+
+	util.ajax.post({url: "/write", data: _pending}, function (err, res) {
 		if (err) {
 			alert(JSON.stringify(err));
 			$.setText('status', 'error while saving');
+		}
+
+		if (_pending) {
+			doSend();
 		} else {
-			$.setText('status', '');
-			var x = preview1.contentWindow.scrollX;
-			var y = preview1.contentWindow.scrollY;
-
-			var atBottom = y + preview1.offsetHeight > preview1.contentDocument.body.scrollHeight - 10;
-
-			var w = preview2.contentWindow;
-			var d = preview2.contentDocument;
-
-			d.open();
-			d.write(res);
-			d.close();
-
-			setTimeout(function () {
-				if (atBottom) {
-					w.scrollTo(x, d.body.scrollHeight);
-				} else {
-					w.scrollTo(x, y);
-				}
-
-				preview2.style.zIndex = 2;
-				preview1.style.zIndex = 1;
-				var swap = preview1;
-				preview1 = preview2;
-				preview2 = swap;
-			});
+			_sending = false;
 		}
 	});
+
+	_pending = null;
 }
 
 read();

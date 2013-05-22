@@ -14,24 +14,21 @@ var app = express();
 var publicDir = path.join(__dirname, "public");
 var filename = process.argv[2];
 var outputFilename = process.argv[3] || (process.argv[2] + '.html');
-var filePath = path.dirname(filename);
+var filePath = path.resolve(process.cwd(), path.dirname(filename));
 
-console.log('serving', path.basename(filename), 'from', filePath);
-
-var _contents = '';
-if (fs.existsSync(filename)) {
-	try {
-		_contents = fs.readFileSync(filename);
-	} catch (e) {
-		console.error(e);
-	}
-}
+console.log('serving', path.basename(filename), 'from', filePath, '[http://localhost:3000]');
 
 app.use('/', express.static(publicDir));
 app.use('/', express.static(filePath));
 
 app.use('/read', function (req, res) {
-	res.send(_contents);
+	fs.readFile(filename, function (err, contents) {
+		if (err) {
+			console.error("Unknown error reading source file", err);
+		} else {
+			res.send(contents);
+		}
+	});
 });
 
 app.use('/write', function (req, res) {
@@ -42,15 +39,11 @@ app.use('/write', function (req, res) {
 
 	req.on('end', function () {
 		var f = ff(function () {
-			_contents = buf.join('');
-			fs.writeFile(filename, _contents, f());
+			var res = JSON.parse(buf.join(''));
+			fs.writeFile(filename, res.src, f());
+			fs.writeFile(outputFilename, res.compiled, f());
 		}, function () {
-			var markdown = spawn("markdown_py", [filename, "-f", outputFilename, "-x", "extra", "-x", "codehilite", "-x", "toc"]);
-			markdown.on('exit', f());
-		}, function () {
-			fs.readFile(outputFilename, f());
-		}, function (contents) {
-			res.send(contents);
+			res.send(200);
 		}).error(function (e) {
 			console.log("error", e);
 			res.send(500, e);
