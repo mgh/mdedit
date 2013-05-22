@@ -49,6 +49,7 @@
 <div id="status"></div>
 </body>
 
+<script src="marked.js"></script>
 <script src="jsio/jsio.js"></script>
 <script>
 jsio.path.add(".");
@@ -59,8 +60,6 @@ jsio("import codemirror.markdown");
 
 jsio("import util.ajax");
 jsio("from util.browser import $");
-
-jsio("import .marked");
 
 var UPDATE_INTERVAL = 500;
 var _lastUpdate = 0;

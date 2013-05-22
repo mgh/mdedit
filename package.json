@@ -9,9 +9,10 @@
     "url": "git://github.com/mgh/mdedit.git"
   },
   "bin": {
-	"mdedit": "bin/mdedit"
+    "mdedit": "bin/mdedit"
   },
   "dependencies": {
+    "marked": "0.2.8",
     "express": "3.0.0rc3",
     "optimist": "0.3.4",
     "ff": "0.0.16",

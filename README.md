@@ -7,13 +7,12 @@ Web-based Markdown Editor
 Requirements
 ------------
 
-* Python: requires Markdown
 * JavaScript: requires node.js
 
 Installation
 ------------
 
-1. sudo easy_install Markdown (or install into a virtualenv)
+1. git submodule update --init
 1. npm link
 
 Running
